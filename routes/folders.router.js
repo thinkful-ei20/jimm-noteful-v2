@@ -88,7 +88,7 @@ router.delete('/folders/:id', (req, res, next) => {
     .del()
     .then(()=>{res.sendStatus(204);})
     .catch(err => {
-      console.error(err);
+      next(err);
     });
 });
 

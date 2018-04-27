@@ -26,7 +26,39 @@ router.get('/tags/:id', (req, res, next) =>{
 });
 
 
-/* ========== POST/CREATE ITEM ========== */
+router.put('/tags/:id', (res, req, next) => {
+
+  const { name } = req.body;
+
+  if (!name) {
+    const err = new Error('Missing `name` in request body');
+    err.status = 400;
+    return next(err);
+  }
+
+  const updateObj = { name };
+
+  knex('tags')
+    .where('id', req.params.id)
+    .update(updateObj)
+    .returning(['id', 'name'])
+    .then(([result]) => {
+      if (result) {
+        res.json(result);
+      } else {
+        next(); //404
+      }
+    })
+    .then(result =>{
+      res.location(`${req.originalUrl}/${result.id}`).status(201).json(result);
+    })
+    .catch(err => {
+      next(err);
+    });
+
+});
+
+
 router.post('/tags', (req, res, next) => {
   const { name } = req.body;
 
@@ -51,10 +83,8 @@ router.post('/tags', (req, res, next) => {
 });
 
 router.delete('/tags/:id', (req, res, next) => {
-  const idToDelete = req.params.id;
-
   knex('tags')
-    .where('id', idToDelete)
+    .where('id', req.params.id)
     .del()
     .then(()=>{res.sendStatus(204);})
     .catch(err => {
