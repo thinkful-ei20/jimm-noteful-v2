@@ -41,7 +41,7 @@ describe('Environment', () => {
 
 describe('Noteful App', function () {
 
-  beforeEach(function () {
+  before(function () {
     return seedData('./db/noteful.sql', 'dev');
   });
 
@@ -171,14 +171,32 @@ describe('Noteful App', function () {
         });
     });
 
-    it('should return an empty array for an incorrect query', function () {
+    // it('should return an empty array for an incorrect query', function () {
+    //   return chai.request(app)
+    //     .get('/api/notes?searchTerm=Not%20a%20Valid%20Search')
+    //     .then(function (res) {
+    //       expect(res).to.have.status(200);
+    //       expect(res).to.be.json;
+    //       expect(res.body).to.be.a('array');
+    //       expect(res.body).to.have.length(0);
+    //     });
+    // });
+    it('should return an empty array for an incorrect query', function(){
+      let res;
       return chai.request(app)
         .get('/api/notes?searchTerm=Not%20a%20Valid%20Search')
-        .then(function (res) {
+        .then(function (_res) {
+          res = _res;
           expect(res).to.have.status(200);
           expect(res).to.be.json;
           expect(res.body).to.be.a('array');
           expect(res.body).to.have.length(0);
+          return knex.select().from('notes').where({title : 'A story about dogs for once'});
+        })
+        .then(data => {
+          expect(data).to.be.a('array');
+          expect(data).to.have.length(0);
+          expect(data[0]).to.equal(undefined);          
         });
     });
 
@@ -218,12 +236,16 @@ describe('Noteful App', function () {
         });
     });
 
-
     it('should respond with a 404 for an invalid id', function () {
       return chai.request(app)
         .get('/DOES/NOT/EXIST')
         .then(res => {
           expect(res).to.have.status(404);
+          return knex.select().from('notes').where({id: 855424});
+        })
+        .then(data => {
+          expect(data).to.be.an('array');
+          expect(data).to.have.length(0);
         });
     });
 
@@ -277,16 +299,23 @@ describe('Noteful App', function () {
 
     it('should return an error when missing "title" field', function () {
       const newItem = {
-        'foo': 'bar'
+        'foo': 'bar',
+        'content': 'dummy content'
       };
+      let body;
       return chai.request(app)
         .post('/api/notes')
         .send(newItem)
         .then(res => {
+          body = res.body;
           expect(res).to.have.status(400);
           expect(res).to.be.json;
           expect(res.body).to.be.a('object');
           expect(res.body.message).to.equal('Missing `title` in request body');
+          return knex.select().from('notes').where({id: 1011});
+        }).then(data => {
+          expect(data).to.be.an('array');
+          expect(data).to.have.length(0);
         });
     });
 
@@ -345,12 +374,17 @@ describe('Noteful App', function () {
   });
 
   describe('DELETE  /api/notes/:id', function () {
-
+    let idToDelete = 1010;
     it('should delete an item by id', function () {
       return chai.request(app)
-        .delete('/api/notes/1005')
+        .delete(`/api/notes/${idToDelete}`)
         .then(function (res) {
           expect(res).to.have.status(204);
+          return knex.select().from('notes').where('id', idToDelete);
+        })
+        .then(data =>{
+          expect(data).to.be.an('array');
+          expect(data).to.have.length(0);
         });
     });
 
